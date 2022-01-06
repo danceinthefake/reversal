@@ -5,6 +5,7 @@ services:
     image: postgres
     restart: always
     environment:
+      # This value only for example only
       POSTGRES_DB: reversal
       POSTGRES_PASSWORD: secret
 
@@ -15,4 +16,4 @@ services:
       - 5000:5000
     environment:
       # This value only for example only
-      DATABASE_URL: "postgresql://postgres:reversal@db/reversal"
+      DATABASE_URL: "postgresql://postgres:secret@db/reversal"
