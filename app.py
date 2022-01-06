@@ -49,9 +49,7 @@ def reverse_req(text):
     db.session.add(reversal)
     db.session.commit()
     return """
-<h1>htaP ruoY</h1>
-
-<p>{}</p>
+<h1>{}</h1>
 """.format(reversed)
 
 if __name__ == '__main__':
