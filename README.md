@@ -1,45 +1,96 @@
 # Reversal 
 
-Flask application that do reversal text in the path and show them in page
+A Flask application that reverses text in the URL path and stores the results. Supports both SQLite and PostgreSQL databases.
 
-## Starting server
+## Features
+- Text reversal API
+- Database storage of all reversals
+- Flexible database backend (SQLite or PostgreSQL)
+- Docker support for development
 
-### Local
-1. Export database variable
+## Configuration
+
+### Database Setup
+The application supports two database types:
+
+#### SQLite (Default)
+```bash
+# Use SQLite (default if DB_TYPE not set)
+export DB_TYPE=sqlite
+
+# Optional: Custom SQLite database path
+export DATABASE_URL=sqlite:///path/to/your/database.db
 ```
-DATABASE_URL="postgresql://<database_username>:<database_password>@<database_host>:<database_port>/<database_name>"
+
+#### PostgreSQL
+```bash
+# Use PostgreSQL
+export DB_TYPE=postgresql
+export DATABASE_URL="postgresql://<username>:<password>@<host>:<port>/<database>"
 ```
-2. Do database init before first access to application
+
+### Initial Setup
+
+1. Set up Python virtual environment and install dependencies:
+```bash
+python -m venv .virtualenv
+source .virtualenv/bin/activate
+pip install -r requirements.txt
 ```
+
+2. Configure environment variables:
+```bash
+export SECRET_KEY="your-secret-key"  # Optional, defaults to dev-secret-key
+# Set database configuration as shown above
+```
+
+3. Initialize the database:
+```bash
 flask db init
-```
-3. Do database migration
-```
-flask db migrate
+flask db migrate -m "Initial migration"
 flask db upgrade
 ```
-do this again after you change schema of database
 
-### Docker Compose for development only
-```
-docker-compose -f compose.yml  up
-#First time only
+### Docker Development Setup
+```bash
+docker-compose -f compose.yml up
+
+# First time only
 docker-compose exec app flask db init
-# First time and each time change schema in database
+
+# After database schema changes
 docker-compose exec app flask db migrate
 docker-compose exec app flask db upgrade
 ```
 
-## Access
-Access via port 5000
-```
+## Usage
+
+The application runs on port 5000 by default.
+
+### Basic Usage
+1. View the welcome page (shows current database configuration):
+```bash
 curl http://localhost:5000
 ```
-To use reversal functionality, just add path
-```
+
+2. Reverse any text by adding it to the path:
+```bash
 curl http://localhost:5000/wearenotalone
 ```
-and your path become reversal in page
+
+Response:
 ```
 enolatoneraew
 ```
+
+Each request is stored in the configured database with:
+- Original path
+- Reversed result
+- Unique ID
+
+## Requirements
+- Python 3.x
+- Flask 3.x
+- SQLAlchemy 2.x
+- PostgreSQL (optional)
+- Docker (optional, for development)
