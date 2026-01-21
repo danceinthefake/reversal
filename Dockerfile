@@ -1,61 +1,41 @@
-# Stage 1: Build dependencies
-FROM python:3.13.7-alpine as builder
+# Stage 1: Build
+FROM rust:1.84-alpine AS builder
 
-# Install build dependencies
-RUN apk add --no-cache \
-    postgresql-dev \
-    gcc \
-    musl-dev \
-    libffi-dev \
-    python3-dev
-
-WORKDIR /install
-
-# Copy and install requirements
-COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
-
-# Stage 2: Final image
-FROM python:3.13.7-alpine
-
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    FLASK_APP=app.py \
-    FLASK_RUN_HOST=0.0.0.0 \
-    DB_TYPE=sqlite \
-    PATH="/app/.local/bin:$PATH" \
-    PYTHONPATH="/app/.local/lib/python3.13/site-packages:$PYTHONPATH"
+RUN apk add --no-cache musl-dev pkgconfig openssl-dev
 
 WORKDIR /app
 
-# Install runtime dependencies only
-RUN apk add --no-cache \
-    postgresql-client \
-    curl \
+COPY Cargo.toml Cargo.lock* ./
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release && rm -rf src
+
+COPY src ./src
+RUN touch src/main.rs && cargo build --release
+
+# Stage 2: Runtime
+FROM alpine:3.21
+
+RUN apk add --no-cache ca-certificates libgcc \
     && addgroup -S appgroup \
     && adduser -S appuser -G appgroup \
-    && mkdir -p /app/data /app/.local \
+    && mkdir -p /app/data \
     && chown -R appuser:appgroup /app
 
-# Copy installed dependencies from builder
-COPY --from=builder /install /app/.local
+WORKDIR /app
 
-# Copy application files
-COPY --chown=appuser:appgroup app.py config.py ./
+COPY --from=builder /app/target/release/reversal /app/reversal
 
-# Switch to non-root user
 USER appuser
 
-# Create volume for SQLite database
+ENV HOST=0.0.0.0
+ENV PORT=3000
+ENV DB_TYPE=sqlite
+
 VOLUME ["/app/data"]
 
-# Health check with reduced frequency for production
 HEALTHCHECK --interval=1m --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5000/ || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
 
-# Expose port
-EXPOSE 5000
+EXPOSE 3000
 
-# Run the application with optimized settings
-CMD ["python", "-m", "flask", "run", "--no-reload"]
+CMD ["/app/reversal"]
